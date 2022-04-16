@@ -4,6 +4,10 @@
 
 This library is an attempt to implement the module [ntplib](https://github.com/cf-natali/ntplib) for Python in C#.
 
+## Checked
+- .Net 6.0
+- .NET Framework 4.8
+
 ## Example
 
 ```C#

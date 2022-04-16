@@ -1,4 +1,7 @@
-﻿using System.Net;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
@@ -44,7 +47,7 @@ namespace NtpLibCs
         /// <summary>
         /// reference identifier table 
         /// </summary>
-        public static readonly Dictionary<string, string> RefIdTable = new()
+        public static readonly Dictionary<string, string> RefIdTable = new Dictionary<string, string>()
         {
             {"GOES", "Geostationary Orbit Environment Satellite"},
             {"GPS\0", "Global Position System"},
@@ -84,7 +87,7 @@ namespace NtpLibCs
         /// <summary>
         /// stratum table
         /// </summary>
-        public static readonly Dictionary<int, string> StratumTable = new()
+        public static readonly Dictionary<int, string> StratumTable = new Dictionary<int, string>()
         {
             {0, "unspecified or invalid"},
             {1, "primary reference"},
@@ -93,7 +96,7 @@ namespace NtpLibCs
         /// <summary>
         /// mode table
         /// </summary>
-        public static readonly Dictionary<int, string> ModeTable = new()
+        public static readonly Dictionary<int, string> ModeTable = new Dictionary<int, string>()
         {
             {0, "reserved"},
             {1, "symmetric active"},
@@ -108,7 +111,7 @@ namespace NtpLibCs
         /// <summary>
         /// leap indicator table
         /// </summary>
-        public static readonly Dictionary<int, string> LeapTable = new()
+        public static readonly Dictionary<int, string> LeapTable = new Dictionary<int, string>()
         {
             {0, "no warning"},
             {1, "last minute of the day has 61 seconds"},
@@ -287,7 +290,7 @@ namespace NtpLibCs
             Array.Copy(data, start, bytes, 0, 4);
             if (BitConverter.IsLittleEndian)
                 bytes = bytes.Reverse().ToArray();
-            return BitConverter.ToUInt32(bytes);
+            return BitConverter.ToUInt32(bytes, 0);
         }
     }
 
@@ -354,7 +357,11 @@ namespace NtpLibCs
         public NtpStats Request(string host, byte version = 2, int port = 123, int timeout = 5)
         {
             // lookup server address
-            var address = Dns.GetHostAddresses(host, AddressFamily.InterNetwork)[0];
+            var address = Dns.GetHostAddresses(host)
+                .FirstOrDefault(ip => ip.AddressFamily == AddressFamily.InterNetwork);
+            if (address is null)
+                throw new NtpException("Could not get the corresponding address from the host name..");
+
             var ipEndPoint = new IPEndPoint(address, port);
 
             // create the socket
@@ -376,7 +383,8 @@ namespace NtpLibCs
                 );
 
                 // send the request
-                socket.Send(queryPacket.ToData());
+                var packetBytes = queryPacket.ToData();
+                socket.Send(packetBytes, packetBytes.Length);
 
                 // wait for the response
                 responsePacket = socket.Receive(ref ipEndPoint);
